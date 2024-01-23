@@ -1,0 +1,12 @@
+/target
+/dist
+*.env
+*.log
+.vscode
+.DS_Store
+*.toml
+!Cargo.toml
+!rustfmt.toml
+!Trunk.toml
+*.db*
+*.sqlite*

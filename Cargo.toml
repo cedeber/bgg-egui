@@ -1,0 +1,54 @@
+[package]
+name = "bgg-egui"
+description = "List game boards from BGG user collection"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cédric Eberhardt"]
+
+
+[dependencies]
+egui = "0.25.0"
+eframe = { version = "0.25.0", default-features = false, features = [
+    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+log = "0.4"
+
+# You only need serde if you want app persistence:
+serde = { version = "1", features = ["derive"] }
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.10"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2
+
+[package.metadata.bundle]
+name = "BoardGameGeek GUI"
+identifier = "fr.cedeber.bgggui"
+# icon = ["32x32.png", "128x128.png", "128x128@2x.png"]
+version = "1.0.0"
+# resources = ["assets", "images/**/*.png", "secrets/public_key.txt"]
+copyright = "Copyright (c) Cédric Eberhardt 2023. All rights reserved."
+category = "Board Game"
+short_description = "List users games of BordGameGeek."
+long_description = """
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.  Ut
+enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat.
+"""
+# osx_frameworks = ["sdl2"]
+osx_url_schemes = ["fr.cedeber.bgggui"]
