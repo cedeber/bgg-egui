@@ -1,22 +1,104 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+// @see https://boardgamegeek.com/wiki/page/BGG_XML_API
+// @see https://boardgamegeek.com/xmlapi/collection/cedeber
+
+#[cfg(not(target_arch = "wasm32"))]
+mod desktop {
+	use clap::Parser;
+
+	/// Simple program to list all board games from a BoardGameGeek user.
+	#[derive(Parser, Debug)]
+	#[clap(author, version, about, long_about = None)]
+	pub struct Args {
+		/// BoardGameGeek Username
+		#[arg()]
+		pub username: Option<String>,
+
+		/// Filter by title with a RegExp
+		#[arg(short, long, requires = "username")]
+		pub filter: Option<String>,
+
+		/// How long you want to play, in minutes. (+/- 10 minutes)
+		#[arg(short, long, requires = "username")]
+		pub time: Option<i64>,
+
+		/// How many players
+		#[arg(short, long, requires = "username")]
+		pub players: Option<i64>,
+
+		/// Export to a TOML file
+		#[arg(short, long, requires = "username")]
+		pub export: bool,
+	}
+}
+
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
-fn main() -> eframe::Result<()> {
+#[tokio::main]
+async fn main() {
+	use bgg_egui::{export, fetch_collection, filter, output};
+	use clap::Parser;
+
 	env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
-	let native_options = eframe::NativeOptions {
-		viewport: egui::ViewportBuilder::default()
-			.with_inner_size([400.0, 300.0])
-			.with_min_inner_size([300.0, 220.0]),
-		..Default::default()
-	};
-	eframe::run_native(
-		"eframe template",
-		native_options,
-		Box::new(|cc| Box::new(bgg_egui::TemplateApp::new(cc))),
-	)
+	// parse the CLI arguments
+	let args = desktop::Args::parse();
+
+	if let Some(username) = &args.username {
+		// Fetch all games from BGG
+		let games = fetch_collection(username).await;
+
+		if games.is_err() {
+			println!("Fetching the games in BGG failed: {}", games.err().unwrap());
+			return;
+		}
+
+		let mut games = games.unwrap();
+
+		// Apply the regex filter if any
+		games = match &args.filter {
+			Some(regex) => filter(&games, regex),
+			None => games,
+		};
+
+		// Filter the games by number of players
+		if let Some(players) = args.players {
+			games.retain(|game| {
+				game.min_players.unwrap_or_default() <= players
+					&& game.max_players.unwrap_or_default() >= players
+			})
+		}
+
+		// Filter the games by time (+/- 10 minutes)
+		if let Some(time) = args.time {
+			games.retain(|game| {
+				let playtime = game.playtime.unwrap_or_default();
+				playtime <= time + 10 && playtime >= time - 10
+			})
+		}
+
+		if args.export {
+			// Export to TOML
+			export(&games);
+		} else {
+			// Output the list of filtered games in the console.
+			output(&games);
+		}
+	} else {
+		let native_options = eframe::NativeOptions {
+			viewport: egui::ViewportBuilder::default()
+				.with_inner_size([400.0, 300.0])
+				.with_min_inner_size([300.0, 220.0]),
+			..Default::default()
+		};
+		let _ = eframe::run_native(
+			"eframe template",
+			native_options,
+			Box::new(|cc| Box::new(bgg_egui::TemplateApp::new(cc))),
+		);
+	}
 }
 
 // When compiling to web using trunk:
