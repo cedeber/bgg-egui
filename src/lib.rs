@@ -1,6 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 mod app;
+pub use app::MyApp;
 pub use app::TemplateApp;
 use regex::Regex;
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,8 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use bgg_egui::MyApp;
+
 // @see https://boardgamegeek.com/wiki/page/BGG_XML_API
 // @see https://boardgamegeek.com/xmlapi/collection/cedeber
 
@@ -87,17 +89,20 @@ async fn main() {
 			output(&games);
 		}
 	} else {
-		let native_options = eframe::NativeOptions {
+		let options = eframe::NativeOptions {
 			viewport: egui::ViewportBuilder::default()
-				.with_inner_size([400.0, 300.0])
-				.with_min_inner_size([300.0, 220.0]),
+				.with_inner_size([640.0, 480.0])
+				.with_min_inner_size([400.0, 300.0]),
+			// renderer: Renderer::Wgpu,
 			..Default::default()
 		};
-		let _ = eframe::run_native(
-			"eframe template",
-			native_options,
-			Box::new(|cc| Box::new(bgg_egui::TemplateApp::new(cc))),
-		);
+
+		eframe::run_native(
+			"Board Game Geek",
+			options,
+			Box::new(|cc| Box::new(MyApp::new(cc))),
+		)
+		.expect("failed to start eframe");
 	}
 }
 
@@ -114,7 +119,7 @@ fn main() {
 			.start(
 				"the_canvas_id", // hardcode it
 				web_options,
-				Box::new(|cc| Box::new(bgg_egui::TemplateApp::new(cc))),
+				Box::new(|cc| Box::new(MyApp::new(cc))),
 			)
 			.await
 			.expect("failed to start eframe");
